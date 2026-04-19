@@ -1,0 +1,102 @@
+Metadata-Version: 2.1
+Name: gstgm
+Version: 0.1.0
+Summary: GSTGM: Graph, Spatial–Temporal Attention and Generative Based Model for Pedestrian Multi-Path Prediction
+Author: GSTGM contributors
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: torch>=2.0.0
+Requires-Dist: numpy>=1.24.0
+Requires-Dist: PyYAML>=6.0
+Requires-Dist: matplotlib>=3.7.0
+Requires-Dist: tqdm>=4.65.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.4.0; extra == "dev"
+
+# GSTGM
+
+**Graph, Spatial–Temporal Attention and Generative Based Model for Pedestrian Multi-Path Prediction**
+
+PyTorch implementation aligned with the GSTGM paper where the methodology is explicit; all gaps are labeled (**paper-specified**, **engineering assumption**, **recommended extension**) in `docs/implementation_notes.md` and in code comments for critical modules.
+
+> **Status:** Phase 1 — project skeleton and configuration only. Data loaders, graph layers, models, training, and evaluation are added in later phases.
+
+## Requirements
+
+- Python 3.10+
+- See `requirements.txt` (PyTorch, NumPy, PyYAML, matplotlib, tqdm)
+
+## Setup
+
+```bash
+cd /path/to/repo
+python -m venv .venv
+# Windows: .venv\Scripts\activate
+# Unix: source .venv/bin/activate
+pip install -U pip
+pip install -r requirements.txt
+pip install -e .
+```
+
+## Configuration
+
+- Global defaults: `configs/default.yaml`
+- ETH/UCY scenes: `configs/eth.yaml`, `hotel.yaml`, `univ.yaml`, `zara1.yaml`, `zara2.yaml` (each sets `extends: default.yaml` and `data.scene`)
+
+Load and merge in Python:
+
+```python
+from pathlib import Path
+from gstgm.utils import load_config
+
+cfg = load_config(Path("configs/eth.yaml"))
+```
+
+Optional CLI-style overrides (Phase 8 will wire argparse):
+
+```python
+from gstgm.utils.config import parse_dotted_overrides
+
+cfg = load_config(
+    Path("configs/eth.yaml"),
+    overrides=parse_dotted_overrides(["training.epochs=10", 'optimizer.lr=0.0005']),
+)
+```
+
+## Repository layout (target)
+
+```
+├── configs/           # YAML experiment configs
+├── data/              # Raw/processed data (see data/README.md)
+├── docs/              # Architecture + implementation notes
+├── gstgm/             # Python package
+│   ├── datasets/      # Phase 2+
+│   ├── graph/         # Phase 3+
+│   ├── models/        # Phase 4+
+│   ├── losses/        # Phase 7+
+│   ├── metrics/       # Phase 7+
+│   ├── trainers/      # Phase 7+
+│   ├── utils/         # config, seed, logging, checkpoints (Phase 1)
+│   └── experiments/   # Phase 8+
+├── scripts/           # CLIs — Phase 2+
+├── tests/             # Phase 10
+└── outputs/           # Checkpoints, logs, figures (gitignored except .gitkeep)
+```
+
+## Reproducibility
+
+`gstgm.utils.seed_all` seeds Python, NumPy, and PyTorch; optional deterministic CUDA is config-driven (`training.deterministic_cuda`).
+
+## License
+
+MIT (or adjust to match your publication policy).
+
+## Citation
+
+If you use this code, cite the GSTGM paper (bib entry to be added when you finalize the reference).

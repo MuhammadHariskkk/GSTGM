@@ -1,0 +1,7 @@
+extends: default.yaml
+
+experiment:
+  name: gstgm_eth
+
+data:
+  scene: eth

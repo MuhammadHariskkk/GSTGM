@@ -1,0 +1,111 @@
+# Default GSTGM configuration (extended by scene-specific YAMLs).
+# Labels: paper-specified vs engineering assumption appear in docs/implementation_notes.md.
+
+experiment:
+  name: gstgm_run
+  output_dir: outputs
+
+data:
+  root: data
+  dataset_name: eth_ucy
+  coordinate_mode: relative_disp  # absolute | relative_disp | velocity — engineering choices for Phase 2
+  # Khel et al. 2024 (Image and Vision Computing §5.1): 8 observation steps, 12 prediction steps @ 2.5 Hz.
+  obs_len: 8
+  pred_len: 12
+  batch_size: 8
+  num_workers: 4
+  pin_memory: true
+  # Phase 2 — preprocessing / loading (defaults keep Phase-1-only configs valid)
+  raw_subdir: raw
+  processed_subdir: processed
+  processed_basename: eth_ucy_windows  # output: {processed_basename}_obs{obs}_pred{pred}.pt
+  # loo: requires data.scene (see configs/eth.yaml) for the held-out test scene. random: pool windows by fraction.
+  split_strategy: loo
+  val_fraction: 0.1
+  test_fraction: 0.1  # used when split_strategy: random
+  max_neighbors: 32
+  # When null, preprocessor uses built-in ETH/UCY scene list; override to limit scenes (e.g. dev runs).
+  preprocess_scenes: null
+
+graph:
+  similarity:
+    # Eq. (2): 1/||v_i-v_j||^2 on velocities (eps ignored). Use inverse_sq_euclidean_eps + eps only for ablations.
+    kernel: inverse_sq_euclidean
+    eps: 1.0e-6                 # degree clamp / optional epsilon-kernel only (not used in Eq. (2))
+  # Eq. (2) gives zero diagonal; set true only if you add explicit self-loops for propagation (engineering).
+  self_loop: false
+  normalize_adjacency: true     # symmetric D^{-1/2} W D^{-1/2} (engineering; not explicit in paper body)
+  degree_eps: 1.0e-6           # numerical floor for degrees when normalizing
+
+attention:
+  # Keep spatial/temporal d_model and model.gcn.hidden_dim aligned unless ablating (Phase 4+).
+  spatial:
+    d_model: 128
+    num_heads: 4
+    dropout: 0.1
+    # Eq. (3) λ, γ (Khel et al. 2024 §4.2). Alternate keys `lambda` / `gamma` also read in code.
+    lambda_spatial: 1.0
+    gamma_adj: 1.0
+  temporal:
+    d_model: 128
+    num_heads: 4
+    dropout: 0.1
+
+model:
+  gcn:
+    hidden_dim: 128
+    num_layers: 2
+    activation: relu
+  environment_channels: 0  # pluggable context dim (Phase 4); 0 = disabled
+  # Phase 6 — LSTM decoder (§4.3) + GMM head widths; optional (defaults match these if omitted).
+  decoder:
+    lstm_hidden_dim: 128
+    lstm_num_layers: 1
+    time_embed_dim: 32
+    dropout: 0.0
+    gmm_head_hidden_dim: 128
+    gmm_sigma_floor: 1.0e-4
+
+generative:
+  latent_dim: 32
+  posterior_hidden_dim: 128
+  prior_hidden_dim: 128
+  time_dependent: true  # engineering assumption: conditioning on step index where practical
+
+gmm:
+  # Khel et al. 2024 §4.4: M = 3 mixture modes.
+  num_modes: 3
+
+optimizer:
+  name: adam
+  lr: 0.001
+  weight_decay: 0.0001
+
+scheduler:
+  name: none  # none | steplr | cosine — wired in trainer Phase 7+
+
+training:
+  # Phase 7: best checkpoint selection should use metrics keys consistent with evaluation (e.g. val_ade).
+  seed: 42
+  epochs: 80
+  grad_clip_norm: 1.0
+  log_every: 50
+  val_every: 1
+  checkpoint_every: 1
+  early_stopping_patience: 0  # 0 = disabled
+  deterministic_cuda: false
+  # §4.6: KL annealing (Eq. 20). kl_anneal_epochs: 0 = full kl_weight from epoch 0.
+  kl_weight: 1.0
+  kl_anneal_epochs: 0
+  cls_weight: 1.0
+  # Paper regression uses Laplace NLL on positions; our head is Gaussian on velocity — see implementation_notes.
+  regression_loss: gaussian_nll  # gaussian_nll | laplace
+
+evaluation:
+  metrics:
+    - ade
+    - fde
+  multimodal:
+    num_samples: 20  # used when scripts/evaluate.py --stochastic (Phase 8)
+  batch_size: 8  # Phase 8 eval DataLoader; omit in a child YAML to inherit data.batch_size
+  num_workers: 2

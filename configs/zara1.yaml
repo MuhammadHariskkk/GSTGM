@@ -1,0 +1,7 @@
+extends: default.yaml
+
+experiment:
+  name: gstgm_zara1
+
+data:
+  scene: zara1
