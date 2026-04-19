@@ -130,4 +130,3 @@ If you use this code, cite the original paper "Khel, M. H. K., Greaney, P., McAf
 
 ## License
 
-See `LICENSE` if present in the repository root.
