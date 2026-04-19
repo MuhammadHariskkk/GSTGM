@@ -1,4 +1,4 @@
-# GSTGM (PyTorch)
+# GSTGM
 
 PyTorch reimplementation of **GSTGM** (*GSTGM: Graph, spatial–temporal attention and generative based model for pedestrian multi-path prediction*; Khel et al., *Image and Vision Computing* 151 (2024) 105245). The repo tracks the paper with an explicit phase roadmap; .
 
